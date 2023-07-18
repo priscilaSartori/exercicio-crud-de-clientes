@@ -57,7 +57,27 @@ public class CustomersControllerTest : IClassFixture<WebApplicationFactory<Progr
   [Fact]
   public async Task CreateTest()
   {
-    throw new NotImplementedException();
+    var request = AutoFaker.Generate<CustomerRequest>();
+
+    _repositoryMock.Setup(r => r.GetNextIdValue()).Returns(1);
+    _repositoryMock.Setup(r => r.Create(It.Is<Customer>(r => r.Id == 1))).Returns(true);
+
+    var response = await _client.PostAsJsonAsync("/customers", request);
+    var content = await response.Content.ReadFromJsonAsync<Customer>();
+
+    response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+    content!.Id.Should().Be(1);
+    content.Name.Should().Be(request.Name);
+    content.CPF.Should().Be(request.CPF);
+    content.Transactions.Should().BeEquivalentTo(request.Transactions);
+
+    content.CreatedAt.Should()
+        .BeCloseTo(content.UpdatedAt, TimeSpan.FromMilliseconds(100));
+
+    _repositoryMock.Verify(r => r.GetNextIdValue(), Times.Once);
+
+    _repositoryMock.Verify(r => r.Create(It.Is<Customer>(r => r.Id == 1)), Times.Once);
   }
 
   [Fact]
